@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-one
+  labels:
+    app: app-one
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-one
+  template:
+    metadata:
+      labels:
+        app: app-one
+    spec:
+      containers:
+        - name: app-one
+          image: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: app-one
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: app-one
+          configMap:
+            name: app-one
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-one
+spec:
+  type: ClusterIP
+  selector:
+    app: app-one
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-one
+  namespace: default
+  labels:
+    app: app-one
+data:
+  main.css: |
+    @font-face {
+      font-family: 'Ubuntu';
+      font-style: normal;
+      font-weight: 300;
+      src: url(https://fonts.gstatic.com/s/ubuntu/v15/4iCv6KVjbNBYlgoC1CzjtGyNL4U.woff2) format('woff2');
+      unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+    }
+    body {
+      width: 100%;
+      margin: auto;
+      color: white;
+      background-color: #303030;
+      font-family: Ubuntu;
+    }
+    #main {
+      font-size: 60px;
+      background: grey;
+      margin-top: 4%;
+      border-top: 2px solid white;
+      border-bottom: 2px solid white;
+      text-align: center;
+    }
+    #logo {
+      text-align: center;
+    }
+    #kuber {
+      width: 30%;
+      height: auto;
+      padding-top: 2%;
+    }
+    #post {
+      text-align: center;
+      font-size: 28px;
+      margin-top: 80px;
+    }
+    #quo {
+      color: red;
+      font-size: 35px;
+    }
+    #list {
+      padding: 0px;
+      list-style: none;
+      margin: 20px auto;
+      width: 120px;
+      text-align: left;
+      display: block;
+      color: #fff;
+      text-shadow: 0 0 7px #fff,
+      0 0 10px #fff,
+      0 0 21px #fff,
+      0 0 42px #0fa,
+      0 0 82px #0fa,
+      0 0 92px #0fa,
+      0 0 102px #0fa,
+      0 0 151px #0fa;
+    }
+    #li {
+      margin-bottom: 10px
+    }
+    .rick {
+      letter-spacing: 2px;
+      padding-top: 25px;
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8"/>
+        <title>Hello Kubernetes!</title>
+        <link rel="stylesheet" href="main.css">
+      </head>
+      <body>
+        <div id="logo">
+          <img src="https://miro.medium.com/max/974/1*zCcJvIj2NPC_4sRz9YoZBw.png" id="kuber"/>
+          <p class="rick">Давай. Вошли и вышли, приключение на 20 минут.</p>
+        </div>
+        <div id="main">
+          <p>Hello from app1.</p>
+        </div>
+        <div id="post">
+          <ul id="list">
+            <li id="li">Erodd</li>
+            <li>Aenstein</li>
+          </ul>
+          <blockquote id="quo">Per aspera ad astra.</blockquote>
+        </div>
+      </body>
+    </html>

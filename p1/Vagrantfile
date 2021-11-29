@@ -1,0 +1,68 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+server_ip = "192.168.42.110"
+
+server_worker_ip = "192.168.42.111"
+
+server_script = <<-SHELL
+	sudo -i
+	export INSTALL_K3S_EXEC="--bind-address=#{server_ip} --node-external-ip=#{server_ip} --flannel-iface=eth1 --write-kubeconfig-mode=644"
+	curl -sfl https://get.k3s.io | sh -
+	echo "EroddS sleeping waiting for k3s to start."
+	sleep 30
+	cp /var/lib/rancher/k3s/server/token /vagrant_shared
+	cp /etc/rancher/k3s/k3s.yaml /vagrant_shared
+	SHELL
+	
+worker_script = <<-SHELL
+	sudo -i
+	export K3S_TOKEN_FILE=/vagrant_shared/token
+	export K3S_URL=https://#{server_ip}:6443
+	export INSTALL_K3S_EXEC="--flannel-iface=eth1"
+	curl -sfl https://get.k3s.io | sh -
+	SHELL
+	
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "generic/centos8"
+    config.vbguest.auto_update = true
+    config.vbguest.installer_options = { allow_kernel_upgrade: true }
+    config.vbguest.no_remote = false
+    config.vm.define "eroddS", primary: true do |server|
+	  server.vm.network "private_network", ip: server_ip
+	  server.vm.synced_folder ".", "/vagrant_shared", type: "virtualbox"
+      server.vm.hostname = "eroddS"
+      server.vm.provider "virtualbox" do |srv|
+        srv.name = "eroddS"
+        srv.memory = 1024
+        srv.cpus = 1
+        srv.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+        srv.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        srv.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/vagrant_shared", "1"]
+      end
+	  server.vm.provision :shell, inline: server_script
+    end
+   
+    config.vm.define "eroddSW" do |worker|
+      worker.vm.network "private_network", ip: server_worker_ip
+      worker.vm.hostname = "eroddSW"
+	    worker.vm.synced_folder ".", "/vagrant_shared", type: "virtualbox"
+      worker.vm.provider "virtualbox" do |wrkr|
+        wrkr.name = "eroddSW"
+        wrkr.memory = 1024
+        wrkr.cpus = 1
+        wrkr.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+        wrkr.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        wrkr.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/vagrant_shared", "1"]
+      end
+	  worker.vm.provision :shell, inline: worker_script
+    end
+  
+    config.vm.provision "shell", inline: <<-SHELL
+	    sudo systemctl disable firewalld --now
+      sudo dnf install net-tools -y
+	    echo 'alias k="k3s kubectl"' >> /home/vagrant/.bashrc
+    SHELL
+  end
+  
