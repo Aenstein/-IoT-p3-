@@ -1,3 +1,9 @@
+#!/bin/bash
+
+yum -y remove podman
+yum -y remove containers-common
+
+
 yum install -y yum-utils
 
 yum-config-manager \
@@ -11,6 +17,7 @@ systemctl enable containerd.service
 
 systemctl start docker
 
+echo "instaling k3d wrapper..."
 curl -s https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
 
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
@@ -25,6 +32,12 @@ EOF
 
 yum install -y kubectl
 echo 'source <(kubectl completion bash)' >>~/.bashrc
+kubectl completion bash >/etc/bash_completion.d/kubectl
+echo 'alias k=kubectl' >>~/.bashrc
+echo 'complete -F __start_kubectl k' >>~/.bashrc
+
+kubectl -n kube-system wait --for=condition=complete --timeout=-1s jobs/helm-install-traefik-crd
+kubectl -n kube-system wait --for=condition=complete --timeout=-1s jobs/helm-install-traefik
 
 k3d cluster create my-cluster -p "8888:30080"
 
