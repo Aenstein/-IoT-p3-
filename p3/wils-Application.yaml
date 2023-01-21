@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/Aenstein/aenstein.git
     targetRevision: HEAD
-    path: k3d
+    path: k3s
   destination:
     server: https://kubernetes.default.svc
     namespace: dev
